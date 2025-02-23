@@ -61,7 +61,7 @@ function createDirectory(name) {
 }
 
 function printCWD(state) {
-  console.log(state.CWD);
+  console.log(state.CWD.name);
 }
 
 function listDirectory() {}
@@ -77,7 +77,8 @@ async function execute(state) {
   const splitCommands = command.split(" ");
 
   if (command.trim().toLowerCase() === "cwd") {
-    printCWD();
+    printCWD(state);
+    setTimeout(() => console.clear(), 1000);
   } else {
     try {
       const res = await createDirectory(command.trim());
@@ -88,7 +89,7 @@ async function execute(state) {
       setTimeout(() => console.clear(), 1000);
     }
   }
-  setTimeout(() => execute(), 2000);
+  setTimeout(() => execute(state), 2000);
 }
 
 function run() {
