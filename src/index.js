@@ -1,7 +1,5 @@
-import readline from "node:readline";
+import readline from "node:readline/promises";
 import { exit, stdin, stdout } from "node:process";
-import timedLog from "./utils/log";
-//
 // Create file: Adds a new file to a directory.
 // Create directory: Adds a new directory to a directory.
 // Write to file:
@@ -48,7 +46,12 @@ const rl = readline.createInterface({
 function createDirectory(name) {
   let resolution = false;
 
-  timedLog("Created Directory: ", name, 1000);
+  if (!resolution) {
+    return new Promise((_, rej) => {
+      rej(new Error("Errored creating directory"));
+    });
+  }
+
   resolution = true;
 
   return new Promise((res) => {
@@ -57,33 +60,29 @@ function createDirectory(name) {
 }
 
 async function readOperation() {
-  rl.question("Input a file operation:\n", async (input) => {
-    console.log(input.trim().toLowerCase());
-    if (input.trim().toLowerCase() === "exit") {
-      rl.close();
-    }
+  const input = await rl.question("Input a file operation:\n");
 
-    try {
-      const res = await createDirectory(input.trim());
-      if (res) {
-        console.log("Created Directory.");
-        readOperation();
-      } else {
-        console.log("Failed to Create Directory.");
-        readOperation();
-      }
-    } catch (err) {
-      console.error("Failed createDirectory: ", err);
-    }
-  });
+  if (input.trim().toLowerCase() === "exit") {
+    rl.close();
+  }
+
+  try {
+    const res = await createDirectory(input.trim());
+    console.log("Created Directory: ", input.trim());
+    setTimeout(() => console.clear(), 1000);
+  } catch (err) {
+    console.error(err.message);
+    setTimeout(() => console.clear(), 1000);
+  }
+  setTimeout(() => readOperation(), 2000);
 }
 
 function run() {
   console.clear();
-  setTimeout(() => console.log("Booting FS.."), 1000);
-  setTimeout(() => initFS(), 2000);
-  setTimeout(() => console.clear(), 3000);
-  setTimeout(() => readOperation(), 4000);
+  console.log("Booting FS..");
+  initFS();
+  setTimeout(() => console.clear(), 1000);
+  setTimeout(() => readOperation(), 2000);
 }
 
 run();
