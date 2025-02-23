@@ -44,7 +44,7 @@ const rl = readline.createInterface({
   output: stdout,
 });
 
-function createDirectory(name) {
+function mkdir(name) {
   let resolution = false;
 
   if (!resolution) {
@@ -60,33 +60,41 @@ function createDirectory(name) {
   });
 }
 
-function printCWD(state) {
+function cwd(state) {
   console.log(state.CWD.name);
 }
 
-function listDirectory() {}
+function list() {}
 
 async function execute(state) {
   const command = await rl.question(
     `Execute operation from ${JSON.stringify(state.CWD.name)}\n`,
   );
+  const splitCommands = command.trim().split(" ");
 
-  if (command.trim().toLowerCase() === "exit") {
-    rl.close();
+  if (splitCommands.length === 1) {
+    if (command.trim().toLowerCase() === "exit") {
+      rl.close();
+    } else if (command.trim().toLowerCase() === "cwd") {
+      cwd(state);
+      setTimeout(() => console.clear(), 1000);
+    } else {
+      console.error("Received invalid command.");
+      setTimeout(() => console.clear(), 1000);
+    }
   }
-  const splitCommands = command.split(" ");
 
-  if (command.trim().toLowerCase() === "cwd") {
-    printCWD(state);
-    setTimeout(() => console.clear(), 1000);
-  } else {
-    try {
-      const res = await createDirectory(command.trim());
-      console.log("Created Directory: ", command.trim());
-      setTimeout(() => console.clear(), 1000);
-    } catch (err) {
-      console.error(err.message);
-      setTimeout(() => console.clear(), 1000);
+  if (splitCommands.length >= 2) {
+    if (splitCommands[0] === "mkdir") {
+      // TODO: accept args to create multiple dirs
+      try {
+        const res = await createDirectory(splitCommands[1]);
+        console.log("Created Directory: ", command.trim());
+        setTimeout(() => console.clear(), 1000);
+      } catch (err) {
+        console.error(err.message);
+        setTimeout(() => console.clear(), 1000);
+      }
     }
   }
   setTimeout(() => execute(state), 2000);
