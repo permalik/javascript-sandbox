@@ -33,8 +33,9 @@ let File = class extends Node {
   }
 };
 
-function initFS() {
+function initFS(state) {
   let rootDir = new Directory("/");
+  state.CWD = rootDir;
   console.log("Created Directory: ", rootDir.name);
 }
 
@@ -59,30 +60,43 @@ function createDirectory(name) {
   });
 }
 
-async function readOperation() {
-  const input = await rl.question("Input a file operation:\n");
+function printCWD(state) {
+  console.log(state.CWD);
+}
 
-  if (input.trim().toLowerCase() === "exit") {
+function listDirectory() {}
+
+async function execute(state) {
+  const command = await rl.question(
+    `Execute operation from ${JSON.stringify(state.CWD.name)}\n`,
+  );
+
+  if (command.trim().toLowerCase() === "exit") {
     rl.close();
   }
+  const splitCommands = command.split(" ");
 
-  try {
-    const res = await createDirectory(input.trim());
-    console.log("Created Directory: ", input.trim());
-    setTimeout(() => console.clear(), 1000);
-  } catch (err) {
-    console.error(err.message);
-    setTimeout(() => console.clear(), 1000);
+  if (command.trim().toLowerCase() === "cwd") {
+    printCWD();
+  } else {
+    try {
+      const res = await createDirectory(command.trim());
+      console.log("Created Directory: ", command.trim());
+      setTimeout(() => console.clear(), 1000);
+    } catch (err) {
+      console.error(err.message);
+      setTimeout(() => console.clear(), 1000);
+    }
   }
-  setTimeout(() => readOperation(), 2000);
+  setTimeout(() => execute(), 2000);
 }
 
 function run() {
+  let fsState = {};
   console.clear();
-  console.log("Booting FS..");
-  initFS();
+  initFS(fsState);
   setTimeout(() => console.clear(), 1000);
-  setTimeout(() => readOperation(), 2000);
+  setTimeout(() => execute(fsState), 2000);
 }
 
 run();
