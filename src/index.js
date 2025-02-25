@@ -14,43 +14,23 @@ import assert from "node:assert";
  * Represents a Node.
  * @class
  */
-let Node = class {
+class Node {
+  /**
+   * Creates an instance of a Node.
+   * @param {string} name: The name of the node.
+   * @param {Array<string>} keys: List of keys (directory names or file names);
+   * @param {Array<string>} children: List of children nodes (directories or files).
+   * @param {boolean} isLeaf: True if node is a leaf node (contains files).
+   */
   constructor(name) {
-    this.name = name;
-  }
-};
-
-/**
- * Represents the Root Directory.
- * @class
- */
-const RootDirectory = class extends Node {
-  constructor(name, keys, children) {
-    super(name, keys, children);
+    /**
+     * @property {string} name: The name of the node.
+     */
     this.name = name;
     this.keys = keys;
     this.children = children;
   }
-};
-
-let Directory = class extends Node {
-  constructor(name, keys, children, isLeaf) {
-    super(name);
-    this.name = name;
-    this.keys = keys;
-    this.children = children;
-    this.isLeaf = isLeaf;
-  }
-  insert() {}
-};
-
-let File = class extends Node {
-  constructor(name, isLeaf, value) {
-    super(name);
-    this.name = name;
-    this.isLeaf = isLeaf;
-  }
-};
+}
 
 /**
  * Create initial File System.
@@ -59,7 +39,7 @@ let File = class extends Node {
  * @returns {void}
  */
 function initFS(state) {
-  let rootDir = new RootDirectory("/", null, null);
+  let rootDir = new Node("/", null, null);
   assert.strictEqual(rootDir.name, "/");
   assert.strictEqual(rootDir.keys, null);
   assert.strictEqual(rootDir.children, null);
