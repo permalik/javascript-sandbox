@@ -1,46 +1,65 @@
-import { copyFile, constants, readdir, stat, mkdir } from "node:fs/promises";
+import {
+  copyFile,
+  constants,
+  readdir,
+  stat,
+  mkdir,
+  rm,
+  writeFile,
+  readFile,
+} from "node:fs/promises";
+import fruits from "./schema.js";
 
 const SOURCEDIRECTORY = "data";
 const DESTDIRECTORY = "dest";
 
 try {
-  let files = [];
+  const staleSourceDir = await stat(SOURCEDIRECTORY).catch((err) => {
+    if (err.code !== "ENOENT") {
+      throw new Error(
+        `Failed to stat sourceDir before remove.\n${err.message}\n`,
+      );
+    }
+  });
 
-  const sourceDir = await createDir(SOURCEDIRECTORY).catch((err) =>
-    console.error(err),
-  );
-  const destDir = await createDir(DESTDIRECTORY).catch((err) =>
-    console.error(err),
-  );
-
-  if (sourceDir && sourceDir.isDirectory()) {
-    files = await readdir(SOURCEDIRECTORY).catch((err) => {
-      throw new Error(`Failed to read directory.\n${err.message}\n`);
+  if (staleSourceDir) {
+    await rm(SOURCEDIRECTORY, { recursive: true, force: true }).catch((err) => {
+      throw new Error(`Failed to remove source directory.\n${err.message}\n`);
     });
-  } else {
-    console.log(`Directory does not exist.\n${SOURCEDIRECTORY}\n`);
   }
 
-  if (files.length > 0) {
-    for (const file of files) {
-      console.log(file);
+  const sourceDir = await mkdir(SOURCEDIRECTORY).catch((err) => {
+    throw new Error(`Failed to create sourceDir\n${err.message}\n`);
+  });
+
+  if (!sourceDir) {
+    for (let [k, v] of Object.entries(fruits)) {
+      await writeFile(`data/${v}`, k).catch((err) => {
+        throw new Error(`Failed to write file.\n${err.message}\n`);
+      });
+      const contents = await readFile(`data/${v}`, { encoding: "utf8" });
     }
-  } else {
-    console.log(`No files found in directory.\n${SOURCEDIRECTORY}\n`);
+  }
+
+  const fileNames = await readdir(SOURCEDIRECTORY);
+
+  let tmp = "";
+  for (let i = 0; i < fileNames.length; i++) {
+    const fileName = fileNames[i].split(".")[0];
+    console.log(fileName);
+  }
+
+  const recreatedSourceDir = await stat(SOURCEDIRECTORY).catch((err) => {
+    throw new Error(`Failed to stat sourceDir after make.\n${err.message}\n`);
+  });
+
+  if (recreatedSourceDir) {
+    await rm(SOURCEDIRECTORY, { recursive: true, force: true }).catch((err) => {
+      throw new Error(
+        `Failed to remove source directory after sorting.\n${err.message}\n`,
+      );
+    });
   }
 } catch (err) {
   console.error(`Error.\n${err.message}\n`);
-}
-
-async function createDir(dir) {
-  try {
-    return await stat(dir);
-  } catch (err) {
-    if (err.code === "ENOENT") {
-      await mkdir(dir);
-      console.log(`Created newDir.\n${dir}\n`);
-    } else {
-      throw new Error(`Failed to access newDir.\n${err.message}\n`);
-    }
-  }
 }
