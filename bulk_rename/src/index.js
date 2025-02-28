@@ -9,7 +9,7 @@ import {
   readFile,
   open,
 } from "node:fs/promises";
-import fruits from "./schema.js";
+import inputFiles from "./schema.js";
 import { close } from "node:inspector/promises";
 
 const SOURCEDIRECTORY = "data";
@@ -35,7 +35,7 @@ try {
   });
 
   if (!sourceDir) {
-    for (let [_, v] of Object.entries(fruits)) {
+    for (let [_, v] of Object.entries(inputFiles)) {
       try {
         const fileHandle = await open(`data/${v}`, "w");
         await fileHandle.close();
@@ -47,11 +47,12 @@ try {
     }
   }
 
-  for (let [k, v] of Object.entries(fruits)) {
+  for (let [k, v] of Object.entries(inputFiles)) {
     await writeFile(`data/${v}`, k).catch((err) => {
       throw new Error(`Failed to write file.\n${err.message}\n`);
     });
     const contents = await readFile(`data/${v}`, { encoding: "utf8" });
+    console.log(contents);
   }
 
   const fileNames = await readdir(SOURCEDIRECTORY);
