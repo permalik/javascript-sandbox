@@ -7,8 +7,10 @@ import {
   rm,
   writeFile,
   readFile,
+  open,
 } from "node:fs/promises";
 import fruits from "./schema.js";
+import { close } from "node:inspector/promises";
 
 const SOURCEDIRECTORY = "data";
 const DESTDIRECTORY = "dest";
@@ -33,21 +35,31 @@ try {
   });
 
   if (!sourceDir) {
-    for (let [k, v] of Object.entries(fruits)) {
-      await writeFile(`data/${v}`, k).catch((err) => {
-        throw new Error(`Failed to write file.\n${err.message}\n`);
-      });
-      const contents = await readFile(`data/${v}`, { encoding: "utf8" });
+    for (let [_, v] of Object.entries(fruits)) {
+      try {
+        const fileHandle = await open(`data/${v}`, "w");
+        await fileHandle.close();
+      } catch (err) {
+        throw new Error(
+          `Failed to create and close file ${v}.\n${err.message}\n`,
+        );
+      }
     }
   }
 
-  const fileNames = await readdir(SOURCEDIRECTORY);
+  for (let [k, v] of Object.entries(fruits)) {
+    await writeFile(`data/${v}`, k).catch((err) => {
+      throw new Error(`Failed to write file.\n${err.message}\n`);
+    });
+    const contents = await readFile(`data/${v}`, { encoding: "utf8" });
+  }
 
-  let tmp = "";
+  const fileNames = await readdir(SOURCEDIRECTORY);
   for (let i = 0; i < fileNames.length; i++) {
     const fileName = fileNames[i].split(".")[0];
-    console.log(fileName);
   }
+
+  // TODO: sort and print contents
 
   const recreatedSourceDir = await stat(SOURCEDIRECTORY).catch((err) => {
     throw new Error(`Failed to stat sourceDir after make.\n${err.message}\n`);
