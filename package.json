@@ -1,11 +1,11 @@
 {
-  "name": "node_fs_sim",
+  "name": "javascript_construct",
   "version": "1.0.0",
   "description": "",
-  "type": "module",
   "main": "index.js",
+  "type": "module",
   "scripts": {
-    "dev": "node src/index.js"
+    "dev_number_sort": "node number_sort/src/index.js"
   },
   "keywords": [],
   "author": "",
