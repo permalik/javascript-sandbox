@@ -8,6 +8,7 @@ import {
   writeFile,
   readFile,
   open,
+  appendFile,
 } from "node:fs/promises";
 import inputFiles from "./schema.js";
 import randomNumberString from "./utils.js";
@@ -107,11 +108,12 @@ async function populateSource() {
   for (let [_, v] of Object.entries(inputFiles)) {
     let lineCounter = 0;
     do {
-      await writeFile(`${SOURCEDIRECTORY}/${v}`, randomNumberString()).catch(
+      await appendFile(`${SOURCEDIRECTORY}/${v}`, randomNumberString()).catch(
         (err) => {
           throw new Error(`Failed to write file.\n${err.message}\n`);
         },
       );
+      console.log(lineCounter);
       lineCounter++;
     } while (lineCounter < 100);
     sourcesPopulated = true;
