@@ -19,11 +19,8 @@ async function run() {
     const isSourcePopulated = await populateSource();
     assert.equal(isSourcePopulated, true, "Source must be populated");
 
-    const isNumbersSorted = await sortNumbers();
+    const isNumbersSorted = await sortNumbers(SOURCEDIRECTORY);
     assert.equal(isNumbersSorted, true, "Numbers must be sorted");
-
-    await destroyDirectory(SOURCEDIRECTORY);
-    await destroyDirectory(DESTDIRECTORY);
   } catch (err) {
     console.error(`Error.\n${err.message}\n`);
   }
@@ -95,12 +92,12 @@ async function populateSource() {
   for (let [_, v] of Object.entries(inputFiles)) {
     let lineCounter = 0;
     do {
-      await appendFile(`${SOURCEDIRECTORY}/${v}`, randomNumberString()).catch(
-        (err) => {
-          throw new Error(`Failed to write file.\n${err.message}\n`);
-        },
-      );
-      console.log(lineCounter);
+      await appendFile(
+        `${SOURCEDIRECTORY}/${v}`,
+        `${randomNumberString()}\n`,
+      ).catch((err) => {
+        throw new Error(`Failed to write file.\n${err.message}\n`);
+      });
       lineCounter++;
     } while (lineCounter < 100);
     sourcesPopulated = true;
@@ -117,11 +114,11 @@ async function populateSource() {
   return promise;
 }
 
-async function sortNumbers() {
-  const fileNames = await readdir(SOURCEDIRECTORY);
+async function sortNumbers(sourceDir) {
+  const fileNames = await readdir(sourceDir);
   let isSorted = false;
   for (let i = 0; i < fileNames.length; i++) {
-    const fileNameStat = await stat(`${SOURCEDIRECTORY}/${fileNames[i]}`).catch(
+    const fileNameStat = await stat(`${sourceDir}/${fileNames[i]}`).catch(
       (err) => {
         throw new Error(
           `Failed to stat source file ${fileNames[i]}.\n${err.message}\n`,
@@ -134,7 +131,7 @@ async function sortNumbers() {
       `Source file ${fileNames[i]} cannot be empty.`,
     );
 
-    const fileStream = createReadStream(`${SOURCEDIRECTORY}/${fileNames[i]}`);
+    const fileStream = createReadStream(`${sourceDir}/${fileNames[i]}`);
     const readline = createInterface({
       input: fileStream,
       crlfDelay: Infinity,
@@ -142,11 +139,32 @@ async function sortNumbers() {
 
     let unsortedLines = [];
     for await (const line of readline) {
-      unsortedLines.push(line);
+      unsortedLines.push(line.trim());
     }
 
-    for (const line of unsortedLines) {
-      console.log(line);
+    let sortedLines = [];
+    for (let line of unsortedLines) {
+      let charStrs = line.split("");
+      let charNums = charStrs.map(Number);
+
+      for (let i = 1; i < charNums.length; i++) {
+        let key = charNums[i];
+        let j = i - 1;
+        while (j >= 0 && charNums[j] > key) {
+          charNums[j + 1] = charNums[j];
+          j--;
+        }
+        charNums[j + 1] = key;
+      }
+
+      let sortedLine = "";
+      for (let num of charNums) {
+        let newNum = num.toString();
+        sortedLine = `${sortedLine}${newNum}`;
+      }
+
+      sortedLines.push(sortedLine);
+      console.log(sortedLine);
     }
 
     if (i === fileNames.length - 1) {
@@ -164,12 +182,6 @@ async function sortNumbers() {
   });
 
   return promise;
-}
-
-async function destroyDirectory(dirPath) {
-  await rm(dirPath, { recursive: true, force: true }).catch((err) => {
-    throw new Error(`Failed to destroy directory.\n${err.message}\n`);
-  });
 }
 
 await run();
