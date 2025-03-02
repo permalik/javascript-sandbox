@@ -24,25 +24,19 @@ async function run() {
       "Numbers must be sorted",
     );
   } catch (err) {
-    console.error(`Error from run().\n${err.message}\n`);
+    console.error(`Error in run:\n${err.message}\n`);
   }
 }
 
 async function initDirectory(dirPath, inputFiles) {
   try {
-    const dirStat = await stat(dirPath).catch((err) => {
+    await rm(dirPath, { recursive: true, force: true }).catch((err) => {
       if (err.code !== "ENOENT") {
         throw new Error(
-          `Failed to stat stale directory before remove.\n${err.message}\n`,
+          `Failed to remove directory ${dirPath}:\n${err.message}\n`,
         );
       }
     });
-
-    if (dirStat) {
-      await rm(dirPath, { recursive: true, force: true }).catch((err) => {
-        throw new Error(`Failed to remove stale directory.\n${err.message}\n`);
-      });
-    }
 
     const dir = await mkdir(dirPath).catch((err) => {
       throw new Error(`Failed to create directory.\n${err.message}\n`);
@@ -179,14 +173,17 @@ async function sortNumbers(sourceDir, destDir) {
         throw new Error(`Failed to close dest file${v}.\n${err.message}\n`);
       });
 
+      const date = new Date();
+      const today = date.toISOString().slice(0, 10).replace(/-/g, "");
       for (const sortedLine of sortedLines) {
-        await appendFile(`${destDir}/${fileNames[i]}`, `${sortedLine}\n`).catch(
-          (err) => {
-            throw new Error(
-              `Failed to populate dest directory.\n${err.message}\n`,
-            );
-          },
-        );
+        await appendFile(
+          `${destDir}/${today}.${fileNames[i]}`,
+          `${sortedLine}\n`,
+        ).catch((err) => {
+          throw new Error(
+            `Failed to populate dest directory.\n${err.message}\n`,
+          );
+        });
       }
 
       if (i === fileNames.length - 1) {
