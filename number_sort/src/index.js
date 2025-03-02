@@ -42,12 +42,18 @@ async function initDirectory(dirPath, files = null) {
 
     if (files) {
       for (const file of Object.values(files)) {
-        await open(`${dirPath}/${file}`, "w").then((f) => f.close());
+        const filePath = `${dirPath}/${file}`;
+        try {
+          const fileHandle = await open(filePath, "w");
+          fileHandle.close();
+        } catch (err) {
+          throw new Error(`Cannot open/close ${filePath}:\n${err.message}\n`);
+        }
       }
     }
     return true;
   } catch (err) {
-    console.error(`Error initializing ${dirPath}:\n${err.Message}\n`);
+    console.error(`Error initializing ${dirPath}:\n${err.message}\n`);
     return false;
   }
 }
@@ -63,23 +69,17 @@ async function populateSource() {
           `${randomNumberString()}\n`,
         ).catch((err) => {
           throw new Error(
-            `Failed to populate line to source directory.\n${err.message}\n`,
+            `Failed to populate line to source directory:\n${err.message}\n`,
           );
         });
         lineCounter++;
       } while (lineCounter < 100);
       sourcesPopulated = true;
     }
-
-    return await new Promise((res, rej) => {
-      if (sourcesPopulated) {
-        res(true);
-      } else {
-        rej(false);
-      }
-    });
+    return sourcesPopulated;
   } catch (err) {
-    console.error(`Error from populateSource().\n${err.message}\n`);
+    console.error(`Error in populateSource:\n${err.message}\n`);
+    return false;
   }
 }
 
@@ -88,71 +88,48 @@ async function sortNumbers(sourceDir, destDir) {
     let isSorted = false;
     const fileNames = await readdir(sourceDir);
     for (let i = 0; i < fileNames.length; i++) {
-      const fileNameStat = await stat(`${sourceDir}/${fileNames[i]}`).catch(
-        (err) => {
-          throw new Error(
-            `Failed to stat source file ${fileNames[i]}.\n${err.message}\n`,
-          );
-        },
-      );
-      assert.notEqual(
-        fileNameStat.size,
-        0,
-        `Source file ${fileNames[i]} cannot be empty.`,
-      );
+      const sourceFilePath = `${sourceDir}/${fileNames[i]}`;
+      const fileStat = await stat(sourceFilePath);
+      if (fileStat.size === 0) {
+        throw new Error(`${sourceFilePath} cannot be empty.`);
+      }
+      assert.notEqual(fileStat.size, 0, `${sourceFilePath} cannot be empty.`);
 
-      const fileStream = createReadStream(`${sourceDir}/${fileNames[i]}`);
+      const fileStream = createReadStream(sourceFilePath);
       const readline = createInterface({
         input: fileStream,
         crlfDelay: Infinity,
       });
-
       let unsortedLines = [];
+
       for await (const line of readline) {
         unsortedLines.push(line.trim());
       }
 
       let sortedLines = [];
       for (let line of unsortedLines) {
-        let charStrs = line.split("");
-        let charNums = charStrs.map(Number);
-
+        let charNums = line.split("").map(Number);
         insertionSort(charNums);
-
-        let sortedLine = "";
-        for (let num of charNums) {
-          let newNum = num.toString();
-          sortedLine = `${sortedLine}${newNum}`;
-        }
-
-        sortedLines.push(sortedLine);
+        sortedLines.push(charNums.join(""));
       }
 
-      const fileHandle = await open(`${destDir}/${fileNames[i]}`, "w").catch(
-        (err) => {
-          throw new Error(
-            `Failed to open dest file${destDir}/${fileNames[i]}.\n${err.message}\n`,
-          );
-        },
-      );
-
-      await fileHandle.close().catch((err) => {
-        throw new Error(`Failed to close dest file${v}.\n${err.message}\n`);
-      });
-
       const date = new Date();
-      const today = date.toISOString().slice(0, 10).replace(/-/g, "");
-      const time = date.toISOString().slice(11, 19).replace(/:/g, "");
-      const milliseconds = date.getMilliseconds().toString().padStart(3, "0");
-      const timestamp = today + time + milliseconds;
+      const timestamp = date
+        .toISOString()
+        .replace(/[-:T.]/g, "")
+        .slice(0, 17);
+      const destFilePath = `${destDir}/${timestamp}.${fileNames[i]}`;
+
+      try {
+        const fileHandle = await open(destFilePath, "w");
+        fileHandle.close();
+      } catch (err) {
+        throw new Error(`Cannot open/close ${destFilePath}:\n${err.message}\n`);
+      }
+
       for (const sortedLine of sortedLines) {
-        await appendFile(
-          `${destDir}/${timestamp}.${fileNames[i]}`,
-          `${sortedLine}\n`,
-        ).catch((err) => {
-          throw new Error(
-            `Failed to populate dest directory.\n${err.message}\n`,
-          );
+        await appendFile(destFilePath, `${sortedLine}\n`).catch((err) => {
+          throw new Error(`Failed write to ${destFilePath}:\n${err.message}\n`);
         });
       }
 
@@ -160,16 +137,10 @@ async function sortNumbers(sourceDir, destDir) {
         isSorted = true;
       }
     }
-
-    return new Promise((res, rej) => {
-      if (isSorted) {
-        res(true);
-      } else {
-        rej(false);
-      }
-    });
+    return isSorted;
   } catch (err) {
-    console.error(err);
+    console.error(`Error in sortNumbers:\n${err.message}\n`);
+    return false;
   }
 }
 
