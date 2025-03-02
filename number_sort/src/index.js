@@ -11,16 +11,19 @@ const DESTDIRECTORY = "number_sort/dest";
 
 async function run() {
   try {
-    assert.equal(
+    assert(Object.keys(inputFiles).length > 0, "inputFiles must not be empty");
+    assert(
+      inputFiles && typeof inputFiles === "object",
+      "inputFiles must be an object",
+    );
+    assert(
       await initDirectory(SOURCEDIRECTORY, inputFiles),
-      true,
       "Source must be initialized",
     );
-    assert.equal(await initDirectory(DESTDIRECTORY), true);
-    assert.equal(await populateSource(), true, "Source must be populated");
-    assert.equal(
+    assert(await initDirectory(DESTDIRECTORY), "Directory must be initialized");
+    assert(await populateSource(SOURCEDIRECTORY), "Source must be populated");
+    assert(
       await sortNumbers(SOURCEDIRECTORY, DESTDIRECTORY),
-      true,
       "Numbers must be sorted",
     );
   } catch (err) {
@@ -32,9 +35,7 @@ async function initDirectory(dirPath, files = null) {
   try {
     await rm(dirPath, { recursive: true, force: true }).catch((err) => {
       if (err.code !== "ENOENT") {
-        throw new Error(
-          `Failed to remove directory ${dirPath}:\n${err.message}\n`,
-        );
+        throw new Error(`Failed to remove ${dirPath}:\n${err.message}\n`);
       }
     });
 
@@ -58,20 +59,19 @@ async function initDirectory(dirPath, files = null) {
   }
 }
 
-async function populateSource() {
+async function populateSource(sourceDir) {
   try {
     let sourcesPopulated = false;
     for (let [_, v] of Object.entries(inputFiles)) {
       let lineCounter = 0;
+      const filePath = `${sourceDir}/${v}`;
       do {
-        await appendFile(
-          `${SOURCEDIRECTORY}/${v}`,
-          `${randomNumberString()}\n`,
-        ).catch((err) => {
-          throw new Error(
-            `Failed to populate line to source directory:\n${err.message}\n`,
-          );
+        const numberString = randomNumberString();
+        await appendFile(filePath, `${numberString}\n`).catch((err) => {
+          throw new Error(`Failed write to ${filePath}\n${err.message}\n`);
         });
+        const fileStat = await stat(filePath);
+        assert(fileStat.size > 0, `${filePath} must contain data`);
         lineCounter++;
       } while (lineCounter < 100);
       sourcesPopulated = true;
@@ -90,10 +90,7 @@ async function sortNumbers(sourceDir, destDir) {
     for (let i = 0; i < fileNames.length; i++) {
       const sourceFilePath = `${sourceDir}/${fileNames[i]}`;
       const fileStat = await stat(sourceFilePath);
-      if (fileStat.size === 0) {
-        throw new Error(`${sourceFilePath} cannot be empty.`);
-      }
-      assert.notEqual(fileStat.size, 0, `${sourceFilePath} cannot be empty.`);
+      assert(fileStat.size > 0, `${sourceFilePath} cannot be empty.`);
 
       const fileStream = createReadStream(sourceFilePath);
       const readline = createInterface({
