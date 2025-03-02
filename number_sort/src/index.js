@@ -146,6 +146,7 @@ async function sortNumbers(sourceDir, destDir) {
         unsortedLines.push(line.trim());
       }
 
+      let sortedLines = [];
       for (let line of unsortedLines) {
         let charStrs = line.split("");
         let charNums = charStrs.map(Number);
@@ -158,19 +159,23 @@ async function sortNumbers(sourceDir, destDir) {
           sortedLine = `${sortedLine}${newNum}`;
         }
 
-        const fileHandle = await open(`${destDir}/${fileNames[i]}`, "w").catch(
-          (err) => {
-            throw new Error(
-              `Failed to open dest file${destDir}/${fileNames[i]}.\n${err.message}\n`,
-            );
-          },
-        );
-        await fileHandle.close().catch((err) => {
-          throw new Error(
-            `Failed to create and close dest file${v}.\n${err.message}\n`,
-          );
-        });
+        sortedLines.push(sortedLine);
+      }
 
+      const fileHandle = await open(`${destDir}/${fileNames[i]}`, "w").catch(
+        (err) => {
+          throw new Error(
+            `Failed to open dest file${destDir}/${fileNames[i]}.\n${err.message}\n`,
+          );
+        },
+      );
+      await fileHandle.close().catch((err) => {
+        throw new Error(
+          `Failed to create and close dest file${v}.\n${err.message}\n`,
+        );
+      });
+
+      for (const sortedLine of sortedLines) {
         await appendFile(`${destDir}/${fileNames[i]}`, `${sortedLine}\n`).catch(
           (err) => {
             throw new Error(
