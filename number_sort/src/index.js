@@ -1,15 +1,4 @@
-import {
-  copyFile,
-  constants,
-  readdir,
-  stat,
-  mkdir,
-  rm,
-  writeFile,
-  readFile,
-  open,
-  appendFile,
-} from "node:fs/promises";
+import { readdir, stat, mkdir, rm, open, appendFile } from "node:fs/promises";
 import inputFiles from "./schema.js";
 import randomNumberString from "./utils.js";
 import assert from "node:assert";
@@ -32,6 +21,9 @@ async function run() {
 
     const isNumbersSorted = await sortNumbers();
     assert.equal(isNumbersSorted, true, "Numbers must be sorted");
+
+    await destroyDirectory(SOURCEDIRECTORY);
+    await destroyDirectory(DESTDIRECTORY);
   } catch (err) {
     console.error(`Error.\n${err.message}\n`);
   }
@@ -172,6 +164,12 @@ async function sortNumbers() {
   });
 
   return promise;
+}
+
+async function destroyDirectory(dirPath) {
+  await rm(dirPath, { recursive: true, force: true }).catch((err) => {
+    throw new Error(`Failed to destroy directory.\n${err.message}\n`);
+  });
 }
 
 await run();
