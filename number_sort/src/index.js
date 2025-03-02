@@ -16,7 +16,7 @@ async function run() {
       true,
       "Source must be initialized",
     );
-    assert.equal(await initDirectory(DESTDIRECTORY, null), true);
+    assert.equal(await initDirectory(DESTDIRECTORY), true);
     assert.equal(await populateSource(), true, "Source must be populated");
     assert.equal(
       await sortNumbers(SOURCEDIRECTORY, DESTDIRECTORY),
@@ -28,7 +28,7 @@ async function run() {
   }
 }
 
-async function initDirectory(dirPath, inputFiles) {
+async function initDirectory(dirPath, files = null) {
   try {
     await rm(dirPath, { recursive: true, force: true }).catch((err) => {
       if (err.code !== "ENOENT") {
@@ -38,50 +38,17 @@ async function initDirectory(dirPath, inputFiles) {
       }
     });
 
-    const dir = await mkdir(dirPath).catch((err) => {
-      throw new Error(`Failed to create directory.\n${err.message}\n`);
-    });
+    await mkdir(dirPath);
 
-    let assetsCreated = false;
-    if (inputFiles) {
-      if (!dir) {
-        for (let [_, v] of Object.entries(inputFiles)) {
-          const fileHandle = await open(`${dirPath}/${v}`, "w").catch((err) => {
-            throw new Error(
-              `Failed to open source file ${v}.\n${err.message}\n`,
-            );
-          });
-
-          await fileHandle.close().catch((err) => {
-            throw new Error(
-              `Failed to close dest file ${v}.\n${err.message}\n`,
-            );
-          });
-        }
-
-        assetsCreated = true;
-      }
-    } else {
-      const dirStat = await stat(dirPath).catch((err) => {
-        if (err.code !== "ENOENT") {
-          throw new Error(`Failed to stat dest directory.\n${err.message}\n`);
-        }
-      });
-
-      if (dirStat) {
-        assetsCreated = true;
+    if (files) {
+      for (const file of Object.values(files)) {
+        await open(`${dirPath}/${file}`, "w").then((f) => f.close());
       }
     }
-
-    return new Promise((res, rej) => {
-      if (assetsCreated) {
-        res(true);
-      } else {
-        rej(false);
-      }
-    });
+    return true;
   } catch (err) {
-    console.error(`Error from ${dirPath} initDirectory().\n${err.Message}\n`);
+    console.error(`Error initializing ${dirPath}:\n${err.Message}\n`);
+    return false;
   }
 }
 
@@ -175,9 +142,12 @@ async function sortNumbers(sourceDir, destDir) {
 
       const date = new Date();
       const today = date.toISOString().slice(0, 10).replace(/-/g, "");
+      const time = date.toISOString().slice(11, 19).replace(/:/g, "");
+      const milliseconds = date.getMilliseconds().toString().padStart(3, "0");
+      const timestamp = today + time + milliseconds;
       for (const sortedLine of sortedLines) {
         await appendFile(
-          `${destDir}/${today}.${fileNames[i]}`,
+          `${destDir}/${timestamp}.${fileNames[i]}`,
           `${sortedLine}\n`,
         ).catch((err) => {
           throw new Error(
