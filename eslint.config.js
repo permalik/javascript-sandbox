@@ -5,8 +5,9 @@ export default [
 
     {
         rules: {
-            "no-unused-vars": "warn",
-            "no-undef": "warn"
+            "quotes": [2, "double"],
+            "no-unused-vars": 0,
+            "no-undef": 0
         }
     }
 ];
