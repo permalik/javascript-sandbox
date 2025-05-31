@@ -1,2 +1,2 @@
-# javascript_sandbox
+# javascript-sandbox
 sandbox:JavaScript Programming and Turnkey Ecosystem
